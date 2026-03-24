@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:15
+    container_name: elecciones_db
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: elecciones_2026
+    ports:
+      - "8052:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Esto cargará toda tu base de datos automáticamente al crear el contenedor
+      - ./elecciones_2026_full.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+  backend:
+    build: ./backend
+    container_name: elecciones_backend
+    restart: always
+    ports:
+      - "8051:3000" # Mapea el puerto 8051 del servidor al 3000 del contenedor
+    environment:
+      # Sobreescribimos las variables para que se conecte a la BD en Docker
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=root
+      - DB_PASSWORD=1234
+      - DB_NAME=elecciones_2026
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  frontend:
+    build: ./frontend
+    container_name: elecciones_frontend
+    restart: always
+    ports:
+      - "8050:80" # Mapea el puerto 8050 del servidor al 80 de Nginx
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pgdata:

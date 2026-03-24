@@ -1,0 +1,71 @@
+﻿
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+  TEST M├ôDULO: CANDIDATOS ÔÇö Elecciones 2026   
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+
+  Ô£à Login admin: HTTP 200
+
+[1] Obtener municipios para selectores...
+  Ô£à GET /municipios retorna 200: HTTP 200
+  ÔØî Contiene los 41 municipios del Cauca: 82 municipios
+  Ô£à Municipios tienen id y nombre
+  Ô£à Tiene departamento Cauca: Cauca
+  Ô£à Municipios ordenados alfab├®ticamente: Almaguer <= Almaguer
+
+[2] Crear candidatos (casos v├ílidos)...
+  Ô£à POST candidato con todos los campos ÔåÆ 201: HTTP 201
+  Ô£à POST segundo candidato ÔåÆ 201: HTTP 201
+  Ô£à POST candidato sin descripci├│n (opcional) ÔåÆ 201: HTTP 201
+
+[3] Validaciones de campos requeridos...
+  Ô£à POST sin nombre ÔåÆ 400: HTTP 400 - Nombre, instituci├│n y municipio son obligatorios
+  Ô£à POST sin instituci├│n ÔåÆ 400: HTTP 400 - Nombre, instituci├│n y municipio son obligatorios
+  Ô£à POST sin municipio ÔåÆ 400: HTTP 400 - Nombre, instituci├│n y municipio son obligatorios
+
+[4] Seguridad ÔÇö acceso sin autenticaci├│n...
+  Ô£à POST sin token ÔåÆ 401: HTTP 401
+  Ô£à GET candidatos sin token ÔåÆ 401: HTTP 401
+
+[5] Listar candidatos...
+  Ô£à GET /election/candidates ÔåÆ 200: HTTP 200
+  Ô£à Retorna array: tipo: object
+  Ô£à Contiene candidatos reci├®n creados: 10 candidatos
+  Ô£à Datos incluyen id, nombre, institucion, municipio: {"id":6,"nombre":"ANA MILENA P├ëREZ QUI├æONES","descripcion":"Rectora comprometida
+  Ô£à Candidatos ordenados alfab├®ticamente (ORDER BY): "ANA MILENA P├ëREZ QUI├æONES" <= "ANA MILENA P├ëREZ QUI├æONES"
+
+  Candidatos registrados:
+    1. [ID:6] ANA MILENA P├ëREZ QUI├æONES | I.E. La Pedregosa | Almaguer
+    2. [ID:9] ANA MILENA P├ëREZ QUI├æONES | I.E. La Pedregosa | Almaguer
+    3. [ID:10] JORGE EDUARDO HURTADO MINA | I.E. T├®cnica Industrial | Almaguer
+    4. [ID:7] JORGE EDUARDO HURTADO MINA | I.E. T├®cnica Industrial | Almaguer
+    5. [ID:1] prueba candidato | jose eusebio caro prueba | Almaguer
+    6. [ID:11] ROSA ELENA GUTI├ëRREZ CIFUENTES | I.E. Agropecuaria | Balboa
+    7. [ID:5] Test Candidato Dos | IE Prueba Sur | Almaguer
+    8. [ID:3] Test Candidato Dos | IE Prueba Sur | Almaguer
+    9. [ID:4] Test Candidato Uno | IE Prueba Norte | Almaguer
+    10. [ID:2] Test Candidato Uno | IE Prueba Norte | Almaguer
+
+[6] Eliminar candidato sin votos...
+  Ô£à DELETE candidato ID:11 sin votos ÔåÆ 200: HTTP 200 - Candidato eliminado
+  Ô£à Candidato eliminado ya NO aparece en lista
+
+[7] Protecci├│n: eliminar candidato CON votos...
+  Ô£à DELETE candidato ID:1 con 3 voto(s) ÔåÆ 400: HTTP 400 - No se puede eliminar un candidato que ya recibi├│ votos
+
+[8] Seguridad ÔÇö votante no puede crear candidatos (RBAC)...
+  Ô£à Votante NO puede crear candidato ÔåÆ 403: HTTP 403 - {"message":"Acceso denegado, requiere rol de Administrador"}
+  Ô£à Votante NO puede eliminar candidato ÔåÆ 403: HTTP 403
+
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+  Estado actual de candidatos en la BD:
+  1. ANA MILENA P├ëREZ QUI├æONES | Almaguer
+  2. ANA MILENA P├ëREZ QUI├æONES | Almaguer
+  3. JORGE EDUARDO HURTADO MINA | Almaguer
+  4. JORGE EDUARDO HURTADO MINA | Almaguer
+  5. prueba candidato | Almaguer
+  6. Test Candidato Dos | Almaguer
+  7. Test Candidato Dos | Almaguer
+  8. Test Candidato Uno | Almaguer
+  9. Test Candidato Uno | Almaguer
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+
