@@ -7,6 +7,7 @@ const {
     getVoters,
     createVoter,
     deleteVoter,
+    importVoters,
     createCandidate,
     updateCandidate,
     deleteCandidate,
@@ -33,12 +34,15 @@ const upload = multer({
     // Sin límite de tamaño
 });
 
+const uploadMemory = multer({ storage: multer.memoryStorage() });
+
 // Middleware aplicado a todas las rutas admin
 router.use(protect, adminOnly);
 
 router.get('/results', getResults);
 router.get('/voters', getVoters);
 router.post('/voters', voterValidationRules, createVoter);
+router.post('/voters/import', uploadMemory.single('file'), importVoters);
 router.delete('/voters/:id', deleteVoter);
 router.post('/candidates', upload.single('foto'), candidateValidationRules, createCandidate);
 router.put('/candidates/:id', upload.single('foto'), candidateValidationRules, updateCandidate);

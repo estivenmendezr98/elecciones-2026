@@ -29,6 +29,15 @@ const AdminDashboard = () => {
     const [voterForm, setVoterForm] = useState({ cedula: '', nombre: '', apellido: '', municipio_id: '', institucion: '' });
     const [formMsg, setFormMsg] = useState({ text: '', type: '' });
     const [confirmDelete, setConfirmDelete] = useState({ type: '', id: null }); // inline confirm state
+    const [importFile, setImportFile] = useState(null);
+    const [isImporting, setIsImporting] = useState(false);
+
+    // Voters Pagination
+    const [votersPage, setVotersPage] = useState(1);
+    const [votersSearchInput, setVotersSearchInput] = useState('');
+    const [votersSearch, setVotersSearch] = useState('');
+    const [votersTotalPages, setVotersTotalPages] = useState(1);
+    const [votersTotal, setVotersTotal] = useState(0);
 
     useEffect(() => {
         loadElection();
@@ -38,15 +47,18 @@ const AdminDashboard = () => {
     useEffect(() => {
         loadTabData();
 
-        // Auto-refresco cada 15 segundos para resultados y votantes
-        const interval = setInterval(() => {
-            if (activeTab === 'results' || activeTab === 'voters') {
+        let interval;
+        // Auto-refresco cada 15 segundos SOLO para resultados
+        if (activeTab === 'results') {
+            interval = setInterval(() => {
                 loadTabData();
-            }
-        }, 15000);
+            }, 15000);
+        }
 
-        return () => clearInterval(interval);
-    }, [activeTab]);
+        return () => {
+             if (interval) clearInterval(interval);
+        };
+    }, [activeTab, votersPage, votersSearch]);
 
     const loadElection = async () => {
         try {
@@ -70,8 +82,10 @@ const AdminDashboard = () => {
                 setTotalVotes(res.data.total_votos_emitidos);
                 setTotalCensus(res.data.total_censo);
             } else if (activeTab === 'voters') {
-                const res = await axios.get('/api/admin/voters');
-                setVoters(res.data);
+                const res = await axios.get(`/api/admin/voters?page=${votersPage}&limit=100&search=${votersSearch}`);
+                setVoters(res.data.data);
+                setVotersTotal(res.data.total);
+                setVotersTotalPages(res.data.totalPages);
             } else if (activeTab === 'candidates') {
                 const res = await axios.get('/api/election/candidates');
                 setCandidates(res.data);
@@ -175,6 +189,34 @@ const AdminDashboard = () => {
         } catch (err) {
             setConfirmDelete({ type: '', id: null });
             setFormMsg({ text: err.response?.data?.message || 'Error eliminando directivo.', type: 'error' });
+        }
+    };
+
+    const handleImportVoters = async (e) => {
+        e.preventDefault();
+        if (!importFile) {
+            setFormMsg({ text: 'Seleccione un archivo TXT/CSV primero.', type: 'error' });
+            return;
+        }
+        setIsImporting(true);
+        setFormMsg({ text: 'Importando directivos, por favor espere esto puede tardar un poco...', type: 'success' });
+        
+        const formData = new FormData();
+        formData.append('file', importFile);
+        
+        try {
+            const res = await axios.post('/api/admin/voters/import', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setFormMsg({ text: res.data.message || 'Importación exitosa.', type: 'success' });
+            setImportFile(null);
+            const fileInput = document.getElementById('importVotersInput');
+            if (fileInput) fileInput.value = '';
+            loadTabData();
+        } catch (err) {
+            setFormMsg({ text: err.response?.data?.message || 'Error durante la importación.', type: 'error' });
+        } finally {
+            setIsImporting(false);
         }
     };
 
@@ -445,7 +487,7 @@ const AdminDashboard = () => {
                 {activeTab === 'voters' && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Form */}
-                        <div className="lg:col-span-1">
+                        <div className="lg:col-span-1 flex flex-col gap-6">
                             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                                 <h3 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2"><UserPlus className="w-5 h-5 text-primary-500" /> Registrar Directivo</h3>
                                 <form onSubmit={handleAddVoter} className="space-y-4">
@@ -483,15 +525,60 @@ const AdminDashboard = () => {
                                     </button>
                                 </form>
                             </div>
+
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                                <h3 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2"><Users className="w-5 h-5 text-primary-500" /> Importación Masiva</h3>
+                                <form onSubmit={handleImportVoters} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600 mb-1">Archivo de Votantes (TXT / CSV)</label>
+                                        <input type="file" id="importVotersInput" accept=".txt,.csv" onChange={e => setImportFile(e.target.files[0])} required disabled={isImporting}
+                                            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-400 outline-none file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100" />
+                                        <p className="text-xs text-slate-400 mt-2">Sube el archivo plano para registrar directivos en lote.</p>
+                                    </div>
+                                    <button type="submit" disabled={isImporting || !importFile} className={`w-full py-2.5 rounded-lg font-medium transition-colors text-white ${isImporting ? 'bg-slate-400 cursor-not-allowed' : 'bg-primary-600 hover:bg-primary-700'}`}>
+                                        {isImporting ? 'Importando...' : 'Cargar Archivo'}
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                         {/* Table */}
                         <div className="lg:col-span-2">
-                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                                <div className="p-5 border-b border-slate-100 flex justify-between items-center">
-                                    <h3 className="font-bold text-slate-800">Censo Electoral ({voters.length} directivos)</h3>
-                                    <button onClick={loadTabData} className="p-2 text-slate-400 hover:text-primary-600 transition-colors"><RefreshCcw className="w-4 h-4" /></button>
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
+                                <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 relative z-10 flex-wrap gap-4">
+                                    <h3 className="font-bold text-slate-800">Censo Electoral ({votersTotal} directivos)</h3>
+                                    <div className="flex gap-2 items-center w-full sm:w-auto">
+                                        <div className="flex bg-white border border-slate-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-400 flex-grow">
+                                            <input 
+                                                type="text" 
+                                                placeholder="Buscar por cédula o nombre..."
+                                                value={votersSearchInput}
+                                                onChange={e => setVotersSearchInput(e.target.value)}
+                                                onKeyDown={e => e.key === 'Enter' && (setVotersPage(1), setVotersSearch(votersSearchInput))}
+                                                className="px-3 py-1.5 text-sm outline-none w-full sm:w-56 appearance-none"
+                                            />
+                                            <button 
+                                                type="button"
+                                                onClick={() => { setVotersPage(1); setVotersSearch(votersSearchInput); }}
+                                                className="bg-primary-50 text-primary-700 px-3 py-1.5 text-sm font-medium hover:bg-primary-100 transition-colors border-l border-slate-200"
+                                            >
+                                                Buscar
+                                            </button>
+                                            {votersSearch && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => { setVotersSearchInput(''); setVotersSearch(''); setVotersPage(1); }}
+                                                    className="bg-slate-100 text-slate-600 px-3 py-1.5 text-sm font-medium hover:bg-slate-200 transition-colors border-l border-slate-200"
+                                                >
+                                                    Limpiar
+                                                </button>
+                                            )}
+                                        </div>
+                                        <button onClick={loadTabData} className="p-2 text-slate-400 hover:text-primary-600 transition-colors bg-white border border-slate-200 rounded-lg" title="Refrescar vista ACTUAL">
+                                            <RefreshCcw className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                                <div className="overflow-x-auto max-h-[600px] overflow-y-auto flex-grow">
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-xs sticky top-0">
                                             <tr>
@@ -547,10 +634,31 @@ const AdminDashboard = () => {
                                                 </tr>
                                             ))}
                                             {voters.length === 0 && (
-                                                <tr><td colSpan="6" className="py-10 text-center text-slate-400">No hay directivos registrados.</td></tr>
+                                                <tr><td colSpan="6" className="py-10 text-center text-slate-400">No hay directivos registrados o encontrados según la búsqueda actual.</td></tr>
                                             )}
                                         </tbody>
                                     </table>
+                                </div>
+                                <div className="p-4 border-t border-slate-100 flex justify-between items-center bg-white">
+                                    <button 
+                                        type="button"
+                                        disabled={votersPage <= 1}
+                                        onClick={() => setVotersPage(p => Math.max(1, p - 1))}
+                                        className="px-3 py-1.5 text-sm font-medium bg-white rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Anterior
+                                    </button>
+                                    <span className="text-sm font-medium text-slate-600">
+                                        Página {votersPage} de {votersTotalPages || 1}
+                                    </span>
+                                    <button 
+                                        type="button"
+                                        disabled={votersPage >= votersTotalPages || votersTotalPages === 0}
+                                        onClick={() => setVotersPage(p => Math.min(votersTotalPages, p + 1))}
+                                        className="px-3 py-1.5 text-sm font-medium bg-white rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Siguiente
+                                    </button>
                                 </div>
                             </div>
                         </div>

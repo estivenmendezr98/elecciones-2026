@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:15
+    image: postgres:latest
     container_name: elecciones_db
     restart: always
     environment:
@@ -21,7 +21,7 @@ services:
     container_name: elecciones_backend
     restart: always
     ports:
-      - "8051:3000" # Mapea el puerto 8051 del servidor al 3000 del contenedor
+      - "8051:5000" # Mapea el puerto 8051 del servidor al 3000 del contenedor
     environment:
       # Sobreescribimos las variables para que se conecte a la BD en Docker
       - DB_HOST=db
